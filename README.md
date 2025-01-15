@@ -16,3 +16,10 @@ All parameters for 6502 cpu can be found here:
 g++ main.cpp -o main
 ./main
 ```
+
+Add `-DDEBUG` to the command line to enable debug mode.
+Add `-DSINGLE_STEP` to the command line to enable single step mode.
+```
+g++ main.cpp -o main -DDEBUG -DSINGLE_STEP
+```
+

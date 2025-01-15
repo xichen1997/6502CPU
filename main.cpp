@@ -1,6 +1,8 @@
 #include <iostream>
 #include <algorithm>
 #include <cstdio>
+// #define SINGLE_STEP
+// #define DEBUG
 using namespace std;
 
 // make a 6502CPU emulator
@@ -9,7 +11,7 @@ private:
     uint8_t A, X, Y, S, P; // 8-bit registers // S is the stack pointer register
     uint16_t PC; // 16-bit address counter
     uint8_t status; // 8-bit status register
-    uint8_t RAM[65535]; // 64KB of RAM, 16 bits address
+    uint8_t RAM[65536]; // 64KB of RAM, 16 bits address
     typedef void (CPU::*OpCodeFn)();
     OpCodeFn opcode_table[256];
 
@@ -99,7 +101,14 @@ public:
 
     void execute() {
         while (PC < 65535) {
+            #ifdef DEBUG
+                cout << "PC: " << hex << (int)PC << endl;
+            #endif
+            #ifdef SINGLE_STEP
+                input();
+            #endif  
             (this->*opcode_table[RAM[PC++]])();
+            
         }
     }
 };

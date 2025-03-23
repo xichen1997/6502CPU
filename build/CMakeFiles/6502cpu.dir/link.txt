@@ -1,1 +1,0 @@
-/Library/Developer/CommandLineTools/usr/bin/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX15.1.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/6502cpu.dir/main.cpp.o CMakeFiles/6502cpu.dir/CPU65C02.cpp.o -o 6502cpu

@@ -1,4 +1,68 @@
-# 6502 Emulator
+# 6502 CPU Emulator
+
+A C++ implementation of a 6502 CPU emulator.
+
+## Prerequisites
+
+- CMake (version 3.10 or higher)
+- C++ compiler with C++17 support
+  - GCC 7 or higher
+  - Clang 5 or higher
+  - MSVC 2017 or higher
+
+## Building the Project
+
+### Using CMake (Recommended)
+
+1. Create a build directory:
+```bash
+mkdir build
+cd build
+```
+
+2. Generate build files:
+```bash
+cmake ..
+```
+
+3. Build the project:
+```bash
+cmake --build .
+```
+
+### Build Options
+
+- To build in Debug mode:
+```bash
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+```
+
+- To treat warnings as errors:
+```bash
+cmake -DWARNINGS_AS_ERRORS=ON ..
+```
+
+### Running the Program
+
+After building, the executable will be created in your build directory. You can run it with:
+```bash
+./6502cpu
+```
+
+## Project Structure
+
+- `main.cpp` - Main program entry point
+- `CPU65C02.h` - CPU class declaration
+- `CPU65C02.cpp` - CPU class implementation
+- `CMakeLists.txt` - CMake build configuration
+
+## Features
+
+- Implements basic 6502 CPU instructions
+- Supports various addressing modes
+- Memory management
+- Register operations
+- Status flag handling
 
 ## Introduction
 

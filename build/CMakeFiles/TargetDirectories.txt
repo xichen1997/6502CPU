@@ -1,3 +1,0 @@
-/Users/xichen/dev/6502CPU/build/CMakeFiles/6502cpu.dir
-/Users/xichen/dev/6502CPU/build/CMakeFiles/edit_cache.dir
-/Users/xichen/dev/6502CPU/build/CMakeFiles/rebuild_cache.dir

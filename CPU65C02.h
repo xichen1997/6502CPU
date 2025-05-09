@@ -24,6 +24,7 @@ private:
     void input();
     void print_registers();
     void push(uint8_t value);
+    void reset_cycles();
     
     // Getters
     uint8_t pull();
@@ -246,6 +247,7 @@ public:
     void TRB_ABS();  // Test and Reset Bits (Absolute)
     void TSB_ZP();   // Test and Set Bits (Zero Page)
     void TSB_ABS();  // Test and Set Bits (Absolute)
+
 };
 
 #endif // CPU65C02_H 

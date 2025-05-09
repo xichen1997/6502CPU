@@ -270,6 +270,11 @@ void CPU65C02::reset() {
     S = 0;
     PC = 0;
     status = 0;
+    cycles = 0;  // Reset cycle counter
+}
+
+void CPU65C02::reset_cycles() {
+    cycles = 0;
 }
 
 void CPU65C02::load_program(uint8_t* program, size_t size) {
@@ -305,7 +310,7 @@ void CPU65C02::input() {
 }
 
 void CPU65C02::print_registers() {
-    cout << "A: $" << hex << (int)A << ", X: $" << (int)X << ", Y: $" << (int)Y << ", P: $" << (int)P << ", S: $" << (int)S << ", PC: $" << PC << endl;
+    if (debug) cout << "A: $" << hex << (int)A << ", X: $" << (int)X << ", Y: $" << (int)Y << ", P: $" << (int)P << ", S: $" << (int)S << ", PC: $" << PC << endl;
 }
 
 // LDA instructions implementation
@@ -313,7 +318,8 @@ void CPU65C02::LDA_ZP() {
     uint8_t addr = fetch_byte();
     A = RAM[addr];
     update_flags(A);
-    cout << "LDA $" << hex << (int)addr << endl;
+    cycles += 3;  // LDA ZP takes 3 cycles
+    if (debug) cout << "LDA $" << hex << (int)addr << endl;
     print_registers();
 }
 
@@ -321,7 +327,8 @@ void CPU65C02::LDA_ZP_X() {
     uint8_t addr = fetch_byte() + X;
     A = RAM[addr];
     update_flags(A);
-    cout << "LDA $" << hex << (int)addr << ",X" << endl;
+    cycles += 4;  // LDA ZP,X takes 4 cycles
+    if (debug) cout << "LDA $" << hex << (int)addr << ",X" << endl;
     print_registers();
 }
 
@@ -329,7 +336,8 @@ void CPU65C02::LDA_IMM() {
     debug_print("Executing LDA_IMM");
     A = fetch_byte();
     update_flags(A);
-    cout << "LDA #$" << hex << (int)A << endl;
+    cycles += 2;  // LDA IMM takes 2 cycles
+    if (debug) cout << "LDA #$" << hex << (int)A << endl;
     print_registers();
 }
 
@@ -337,7 +345,8 @@ void CPU65C02::LDA_ABS() {
     uint16_t addr = fetch_word();
     A = RAM[addr];
     update_flags(A);
-    cout << "LDA $" << hex << setw(4) << setfill('0') << addr << endl;
+    cycles += 4;  // LDA ABS takes 4 cycles
+    if (debug) cout << "LDA $" << hex << setw(4) << setfill('0') << addr << endl;
     print_registers();
 }
 
@@ -345,7 +354,8 @@ void CPU65C02::LDA_ABS_Y() {
     uint16_t addr = fetch_word();
     A = fetch_byte(addr + Y);
     update_flags(A);
-    cout << "LDA $" << hex << setw(4) << setfill('0') << addr << ",Y" << endl;
+    cycles += 4;  // LDA ABS,Y takes 4 cycles (5 if page boundary crossed)
+    if (debug) cout << "LDA $" << hex << setw(4) << setfill('0') << addr << ",Y" << endl;
     print_registers();
 }
 
@@ -353,7 +363,8 @@ void CPU65C02::LDA_ABS_X() {
     uint16_t addr = fetch_word();
     A = fetch_byte(addr + X);
     update_flags(A);
-    cout << "LDA $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
+    cycles += 4;  // LDA ABS,X takes 4 cycles (5 if page boundary crossed)
+    if (debug) cout << "LDA $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
     print_registers();
 }
 
@@ -361,7 +372,8 @@ void CPU65C02::LDA_PRE_IND_X() {
     uint8_t addr = fetch_byte() + X;
     A = fetch_byte(addr) + (fetch_byte(addr + 1) << 8);
     update_flags(A);
-    cout << "LDA ($" << hex << (int)addr << ",X)" << endl;
+    cycles += 6;  // LDA (ZP,X) takes 6 cycles
+    if (debug) cout << "LDA ($" << hex << (int)addr << ",X)" << endl;
     print_registers();
 }
 
@@ -370,7 +382,8 @@ void CPU65C02::LDA_POST_IND_Y() {
     uint16_t base = fetch_byte(pre_zp_addr) + (fetch_byte(pre_zp_addr + 1) << 8);
     A = fetch_byte(base + Y);
     update_flags(A);
-    cout << "LDA ($" << hex << (int)pre_zp_addr << "),Y" << endl;
+    cycles += 5;  // LDA (ZP),Y takes 5 cycles (6 if page boundary crossed)
+    if (debug)cout << "LDA ($" << hex << (int)pre_zp_addr << "),Y" << endl;
     print_registers();
 }
 
@@ -378,7 +391,8 @@ void CPU65C02::LDA_IND() {
     uint8_t addr = fetch_byte();
     A = fetch_byte(addr) + (fetch_byte(addr + 1) << 8);
     update_flags(A);
-    cout << "LDA ($" << hex << (int)addr << ")" << endl;
+    cycles += 5;  // LDA (ZP) takes 5 cycles
+    if (debug) cout << "LDA ($" << hex << (int)addr << ")" << endl;
     print_registers();
 }
 
@@ -386,7 +400,7 @@ void CPU65C02::LDA_IND() {
 void CPU65C02::LDX_IMM() {
     X = fetch_byte();
     update_flags(X);
-    cout << "LDX #$" << hex << (int)X << endl;
+    if (debug) cout << "LDX #$" << hex << (int)X << endl;
     print_registers();
 }
 
@@ -394,7 +408,7 @@ void CPU65C02::LDX_ZP() {
     uint8_t addr = fetch_byte();
     X = RAM[addr];
     update_flags(X);
-    cout << "LDX $" << hex << (int)addr << endl;
+    if (debug) cout << "LDX $" << hex << (int)addr << endl;
     print_registers();
 }
 
@@ -402,7 +416,7 @@ void CPU65C02::LDX_ZP_Y() {
     uint8_t zp_addr = fetch_byte() + Y;
     X = fetch_byte(zp_addr);
     update_flags(X);
-    cout << "LDX $" << hex << (int)zp_addr << ",Y" << endl;
+    if (debug) cout << "LDX $" << hex << (int)zp_addr << ",Y" << endl;
     print_registers();
 }
 
@@ -410,7 +424,7 @@ void CPU65C02::LDX_ABS() {
     uint16_t addr = fetch_word();
     X = fetch_byte(addr);
     update_flags(X);
-    cout << "LDX $" << hex << setw(4) << setfill('0') << addr << endl;
+    if (debug)cout << "LDX $" << hex << setw(4) << setfill('0') << addr << endl;
     print_registers();
 }
 
@@ -418,7 +432,7 @@ void CPU65C02::LDX_ABS_Y() {
     uint16_t addr = fetch_word();
     X = fetch_byte(addr + Y);
     update_flags(X);
-    cout << "LDX $" << hex << setw(4) << setfill('0') << addr << ",Y" << endl;
+    if (debug) cout << "LDX $" << hex << setw(4) << setfill('0') << addr << ",Y" << endl;
     print_registers();
 }
 
@@ -426,7 +440,7 @@ void CPU65C02::LDX_ABS_Y() {
 void CPU65C02::LDY_IMM() {
     Y = fetch_byte();
     update_flags(Y);
-    cout << "LDY #$" << hex << (int)Y << endl;
+    if (debug) cout << "LDY #$" << hex << (int)Y << endl;
     print_registers();
 }
 
@@ -434,7 +448,7 @@ void CPU65C02::LDY_ZP() {
     uint8_t addr = fetch_byte();
     Y = RAM[addr];
     update_flags(Y);
-    cout << "LDY $" << hex << (int)addr << endl;
+    if (debug) cout << "LDY $" << hex << (int)addr << endl;
     print_registers();
 }
 
@@ -442,7 +456,7 @@ void CPU65C02::LDY_ZP_X() {
     uint8_t zp_addr = fetch_byte() + X;
     Y = fetch_byte(zp_addr);
     update_flags(Y);
-    cout << "LDY $" << hex << (int)zp_addr << ",X" << endl;
+    if (debug) cout << "LDY $" << hex << (int)zp_addr << ",X" << endl;
     print_registers();
 }
 
@@ -450,7 +464,7 @@ void CPU65C02::LDY_ABS() {
     uint16_t addr = fetch_word();
     Y = fetch_byte(addr);
     update_flags(Y);
-    cout << "LDY $" << hex << setw(4) << setfill('0') << addr << endl;
+    if (debug) cout << "LDY $" << hex << setw(4) << setfill('0') << addr << endl;
     print_registers();
 }
 
@@ -458,7 +472,7 @@ void CPU65C02::LDY_ABS_X() {
     uint16_t addr = fetch_word();
     Y = fetch_byte(addr + X);
     update_flags(Y);
-    cout << "LDY $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
+    if (debug) cout << "LDY $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
     print_registers();
 }
 
@@ -467,109 +481,121 @@ void CPU65C02::STA_ZP() {
     debug_print("Executing STA_ZP");
     uint8_t addr = fetch_byte();
     RAM[addr] = A;
-    cout << "STA $" << hex << (int)addr << endl;
+    cycles += 3;  // STA ZP takes 3 cycles
+    if (debug) cout << "STA $" << hex << (int)addr << endl;
     debug_print("Stored value in memory");
 }
 
 void CPU65C02::STA_ZP_X() {
     uint16_t addr = (fetch_byte() + X) & 0xFF;
     RAM[addr] = A;
-    cout << "STA $" << hex << (int)addr << ",X" << endl;
+    cycles += 4;  // STA ZP,X takes 4 cycles
+    if (debug) cout << "STA $" << hex << (int)addr << ",X" << endl;
 }
 
 void CPU65C02::STA_ABS() {
     uint16_t addr = fetch_word();
     RAM[addr] = A;
-    cout << "STA $" << hex << setw(4) << setfill('0') << addr << endl;
+    cycles += 4;  // STA ABS takes 4 cycles
+    if (debug) cout << "STA $" << hex << setw(4) << setfill('0') << addr << endl;
 }
 
 void CPU65C02::STA_ABS_X() {
     uint16_t addr = fetch_word();
     RAM[addr + X] = A;
+    cycles += 5;  // STA ABS,X takes 5 cycles
     cout << "STA $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
 }
 
 void CPU65C02::STA_ABS_Y() {
     uint16_t addr = fetch_word();
     RAM[addr + Y] = A;
-    cout << "STA $" << hex << setw(4) << setfill('0') << addr << ",Y" << endl;
+    cycles += 5;  // STA ABS,Y takes 5 cycles
+    if (debug) cout << "STA $" << hex << setw(4) << setfill('0') << addr << ",Y" << endl;
 }
 
 void CPU65C02::STA_PRE_IND_X() {
     uint8_t zp_addr = fetch_byte() + X;
     uint16_t base = fetch_byte(zp_addr) + (fetch_byte(zp_addr + 1) << 8);
     RAM[base] = A;
-    cout << "STA ($" << hex << (int)zp_addr << ",X)" << endl;
+    cycles += 6;  // STA (ZP,X) takes 6 cycles
+    if (debug) cout << "STA ($" << hex << (int)zp_addr << ",X)" << endl;
 }
 
 void CPU65C02::STA_POST_IND_Y() {
     uint8_t zp_addr = fetch_byte();
     uint16_t base = fetch_byte(zp_addr) + (fetch_byte(zp_addr + 1) << 8);
     RAM[base + Y] = A;
-    cout << "STA ($" << hex << (int)zp_addr << "),Y" << endl;
+    cycles += 6;  // STA (ZP),Y takes 6 cycles
+    if (debug) cout << "STA ($" << hex << (int)zp_addr << "),Y" << endl;
 }
 
 void CPU65C02::STA_IND() {
     uint8_t zp_addr = fetch_byte();
     uint16_t base = fetch_byte(zp_addr) + (fetch_byte(zp_addr + 1) << 8);
     RAM[base] = A;
-    cout << "STA ($" << hex << (int)zp_addr << ")" << endl;
+    cycles += 5;  // STA (ZP) takes 5 cycles
+    if (debug) cout << "STA ($" << hex << (int)zp_addr << ")" << endl;
 }
 
 // STX instructions implementation
 void CPU65C02::STX_ZP() {
     uint8_t addr = fetch_byte();
     RAM[addr] = X;
-    cout << "STX $" << hex << (int)addr << endl;
+    if (debug) cout << "STX $" << hex << (int)addr << endl;
 }
 
 void CPU65C02::STX_ZP_Y() {
     uint8_t zp_addr = fetch_byte() + Y;
     RAM[zp_addr] = X;
-    cout << "STX $" << hex << (int)zp_addr << ",Y" << endl;
+    if (debug) cout << "STX $" << hex << (int)zp_addr << ",Y" << endl;
 }
 
 void CPU65C02::STX_ABS() {
     uint16_t addr = fetch_word();
     RAM[addr] = X;
-    cout << "STX $" << hex << setw(4) << setfill('0') << addr << endl;
+    if (debug) cout << "STX $" << hex << setw(4) << setfill('0') << addr << endl;
 }
 
 // STY instructions implementation
 void CPU65C02::STY_ZP() {
     uint8_t addr = fetch_byte();
     RAM[addr] = Y;
-    cout << "STY $" << hex << (int)addr << endl;
+    if (debug) cout << "STY $" << hex << (int)addr << endl;
 }
 
 void CPU65C02::STY_ZP_X() {
     uint8_t zp_addr = fetch_byte() + X;
     RAM[zp_addr] = Y;
-    cout << "STY $" << hex << (int)zp_addr << ",X" << endl;
+    if (debug) cout << "STY $" << hex << (int)zp_addr << ",X" << endl;
 }
 
 void CPU65C02::STY_ABS() {
     uint16_t addr = fetch_word();
     RAM[addr] = Y;
-    cout << "STY $" << hex << setw(4) << setfill('0') << addr << endl;
+    if (debug) cout << "STY $" << hex << setw(4) << setfill('0') << addr << endl;
 }
 
 // Other instructions implementation
 void CPU65C02::JMP() {
     PC = fetch_byte();
-    cout << "JMP $" << hex << (int)PC << endl;
+    cycles += 3;  // JMP takes 3 cycles
+    if (debug) cout << "JMP $" << hex << (int)PC << endl;
 }
 
 void CPU65C02::BRK() {
-    cout << "BRK" << endl;
+    cycles += 7;  // BRK takes 7 cycles
+    if (debug) cout << "BRK" << endl;
 }
 
 void CPU65C02::NOP() {
-    cout << "NOP" << endl;
+    cycles += 2;  // NOP takes 2 cycles
+    if (debug) cout << "NOP" << endl;
 }
 
 void CPU65C02::RTI() {
-    cout << "RTI" << endl;
+    cycles += 6;  // RTI takes 6 cycles
+    if (debug) cout << "RTI" << endl;
     PC = 0;
 }
 
@@ -581,7 +607,8 @@ void CPU65C02::ADC_IMM() {
     status = (status & ~0x01) | (result > 0xFF); // Set carry if result > 255
     A = result & 0xFF;
     update_flags(A);
-    cout << "ADC #$" << hex << (int)operand << endl;
+    cycles += 2;  // ADC IMM takes 2 cycles
+    if (debug) cout << "ADC #$" << hex << (int)operand << endl;
     print_registers();
 }
 
@@ -592,7 +619,8 @@ void CPU65C02::ADC_ZP() {
     status = (status & ~0x01) | (result > 0xFF);
     A = result & 0xFF;
     update_flags(A);
-    cout << "ADC $" << hex << (int)addr << endl;
+    cycles += 3;  // ADC ZP takes 3 cycles
+    if (debug) cout << "ADC $" << hex << (int)addr << endl;
     print_registers();
 }
 
@@ -603,7 +631,8 @@ void CPU65C02::ADC_ZP_X() {
     status = (status & ~0x01) | (result > 0xFF);
     A = result & 0xFF;
     update_flags(A);
-    cout << "ADC $" << hex << (int)addr << ",X" << endl;
+    cycles += 4;  // ADC ZP,X takes 4 cycles
+    if (debug) cout << "ADC $" << hex << (int)addr << ",X" << endl;
     print_registers();
 }
 
@@ -614,7 +643,8 @@ void CPU65C02::ADC_ABS() {
     status = (status & ~0x01) | (result > 0xFF);
     A = result & 0xFF;
     update_flags(A);
-    cout << "ADC $" << hex << setw(4) << setfill('0') << addr << endl;
+    cycles += 4;  // ADC ABS takes 4 cycles
+    if (debug) cout << "ADC $" << hex << setw(4) << setfill('0') << addr << endl;
     print_registers();
 }
 
@@ -625,7 +655,8 @@ void CPU65C02::ADC_ABS_X() {
     status = (status & ~0x01) | (result > 0xFF);
     A = result & 0xFF;
     update_flags(A);
-    cout << "ADC $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
+    cycles += 4;  // ADC ABS,X takes 4 cycles (5 if page boundary crossed)
+    if (debug) cout << "ADC $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
     print_registers();
 }
 
@@ -636,7 +667,8 @@ void CPU65C02::ADC_ABS_Y() {
     status = (status & ~0x01) | (result > 0xFF);
     A = result & 0xFF;
     update_flags(A);
-    cout << "ADC $" << hex << setw(4) << setfill('0') << addr << ",Y" << endl;
+    cycles += 4;  // ADC ABS,Y takes 4 cycles (5 if page boundary crossed)
+    if (debug) cout << "ADC $" << hex << setw(4) << setfill('0') << addr << ",Y" << endl;
     print_registers();
 }
 
@@ -648,7 +680,7 @@ void CPU65C02::ADC_PRE_IND_X() {
     status = (status & ~0x01) | (result > 0xFF);
     A = result & 0xFF;
     update_flags(A);
-    cout << "ADC ($" << hex << (int)zp_addr << ",X)" << endl;
+    if (debug) cout << "ADC ($" << hex << (int)zp_addr << ",X)" << endl;
     print_registers();
 }
 
@@ -660,7 +692,7 @@ void CPU65C02::ADC_POST_IND_Y() {
     status = (status & ~0x01) | (result > 0xFF);
     A = result & 0xFF;
     update_flags(A);
-    cout << "ADC ($" << hex << (int)zp_addr << "),Y" << endl;
+    if (debug) cout << "ADC ($" << hex << (int)zp_addr << "),Y" << endl;
     print_registers();
 }
 
@@ -672,7 +704,7 @@ void CPU65C02::ADC_IND() {
     status = (status & ~0x01) | (result > 0xFF);
     A = result & 0xFF;
     update_flags(A);
-    cout << "ADC ($" << hex << (int)zp_addr << ")" << endl;
+    if (debug) cout << "ADC ($" << hex << (int)zp_addr << ")" << endl;
     print_registers();
 }
 
@@ -684,7 +716,8 @@ void CPU65C02::SBC_IMM() {
     status = (status & ~0x01) | (result <= 0xFF); // Set carry if result >= 0
     A = result & 0xFF;
     update_flags(A);
-    cout << "SBC #$" << hex << (int)operand << endl;
+    cycles += 2;  // SBC IMM takes 2 cycles
+    if (debug) cout << "SBC #$" << hex << (int)operand << endl;
     print_registers();
 }
 
@@ -695,7 +728,8 @@ void CPU65C02::SBC_ZP() {
     status = (status & ~0x01) | (result <= 0xFF);
     A = result & 0xFF;
     update_flags(A);
-    cout << "SBC $" << hex << (int)addr << endl;
+    cycles += 3;  // SBC ZP takes 3 cycles
+    if (debug) cout << "SBC $" << hex << (int)addr << endl;
     print_registers();
 }
 
@@ -706,7 +740,8 @@ void CPU65C02::SBC_ZP_X() {
     status = (status & ~0x01) | (result <= 0xFF);
     A = result & 0xFF;
     update_flags(A);
-    cout << "SBC $" << hex << (int)addr << ",X" << endl;
+    cycles += 4;  // SBC ZP,X takes 4 cycles
+    if (debug) cout << "SBC $" << hex << (int)addr << ",X" << endl;
     print_registers();
 }
 
@@ -717,7 +752,8 @@ void CPU65C02::SBC_ABS() {
     status = (status & ~0x01) | (result <= 0xFF);
     A = result & 0xFF;
     update_flags(A);
-    cout << "SBC $" << hex << setw(4) << setfill('0') << addr << endl;
+    cycles += 4;  // SBC ABS takes 4 cycles
+    if (debug) cout << "SBC $" << hex << setw(4) << setfill('0') << addr << endl;
     print_registers();
 }
 
@@ -728,7 +764,8 @@ void CPU65C02::SBC_ABS_X() {
     status = (status & ~0x01) | (result <= 0xFF);
     A = result & 0xFF;
     update_flags(A);
-    cout << "SBC $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
+    cycles += 4;  // SBC ABS,X takes 4 cycles (5 if page boundary crossed)
+    if (debug) cout << "SBC $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
     print_registers();
 }
 
@@ -739,7 +776,8 @@ void CPU65C02::SBC_ABS_Y() {
     status = (status & ~0x01) | (result <= 0xFF);
     A = result & 0xFF;
     update_flags(A);
-    cout << "SBC $" << hex << setw(4) << setfill('0') << addr << ",Y" << endl;
+    cycles += 4;  // SBC ABS,Y takes 4 cycles (5 if page boundary crossed)
+    if (debug)cout << "SBC $" << hex << setw(4) << setfill('0') << addr << ",Y" << endl;
     print_registers();
 }
 
@@ -751,7 +789,8 @@ void CPU65C02::SBC_PRE_IND_X() {
     status = (status & ~0x01) | (result <= 0xFF);
     A = result & 0xFF;
     update_flags(A);
-    cout << "SBC ($" << hex << (int)zp_addr << ",X)" << endl;
+    cycles += 6;  // SBC (ZP,X) takes 6 cycles
+    if (debug) cout << "SBC ($" << hex << (int)zp_addr << ",X)" << endl;
     print_registers();
 }
 
@@ -763,7 +802,8 @@ void CPU65C02::SBC_POST_IND_Y() {
     status = (status & ~0x01) | (result <= 0xFF);
     A = result & 0xFF;
     update_flags(A);
-    cout << "SBC ($" << hex << (int)zp_addr << "),Y" << endl;
+    cycles += 5;  // SBC (ZP),Y takes 5 cycles (6 if page boundary crossed)
+    if (debug) cout << "SBC ($" << hex << (int)zp_addr << "),Y" << endl;
     print_registers();
 }
 
@@ -775,7 +815,8 @@ void CPU65C02::SBC_IND() {
     status = (status & ~0x01) | (result <= 0xFF);
     A = result & 0xFF;
     update_flags(A);
-    cout << "SBC ($" << hex << (int)zp_addr << ")" << endl;
+    cycles += 5;  // SBC (ZP) takes 5 cycles
+    if (debug) cout << "SBC ($" << hex << (int)zp_addr << ")" << endl;
     print_registers();
 }
 
@@ -784,7 +825,8 @@ void CPU65C02::INC_ZP() {
     uint8_t addr = fetch_byte();
     RAM[addr]++;
     update_flags(RAM[addr]);
-    cout << "INC $" << hex << (int)addr << endl;
+    cycles += 5;  // INC ZP takes 5 cycles
+    if (debug) cout << "INC $" << hex << (int)addr << endl;
     print_registers();
 }
 
@@ -792,7 +834,8 @@ void CPU65C02::INC_ZP_X() {
     uint8_t addr = fetch_byte() + X;
     RAM[addr]++;
     update_flags(RAM[addr]);
-    cout << "INC $" << hex << (int)addr << ",X" << endl;
+    cycles += 6;  // INC ZP,X takes 6 cycles
+    if (debug) cout << "INC $" << hex << (int)addr << ",X" << endl;
     print_registers();
 }
 
@@ -800,7 +843,8 @@ void CPU65C02::INC_ABS() {
     uint16_t addr = fetch_word();
     RAM[addr]++;
     update_flags(RAM[addr]);
-    cout << "INC $" << hex << setw(4) << setfill('0') << addr << endl;
+    cycles += 6;  // INC ABS takes 6 cycles
+    if (debug) cout << "INC $" << hex << setw(4) << setfill('0') << addr << endl;
     print_registers();
 }
 
@@ -808,21 +852,24 @@ void CPU65C02::INC_ABS_X() {
     uint16_t addr = fetch_word() + X;
     RAM[addr]++;
     update_flags(RAM[addr]);
-    cout << "INC $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
+    cycles += 7;  // INC ABS,X takes 7 cycles
+    if (debug) cout << "INC $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
     print_registers();
 }
 
 void CPU65C02::INX() {
     X++;
     update_flags(X);
-    cout << "INX" << endl;
+    cycles += 2;  // INX takes 2 cycles
+    if (debug) cout << "INX" << endl;
     print_registers();
 }
 
 void CPU65C02::INY() {
     Y++;
     update_flags(Y);
-    cout << "INY" << endl;
+    cycles += 2;  // INY takes 2 cycles
+    if (debug) cout << "INY" << endl;
     print_registers();
 }
 
@@ -831,7 +878,8 @@ void CPU65C02::DEC_ZP() {
     uint8_t addr = fetch_byte();
     RAM[addr]--;
     update_flags(RAM[addr]);
-    cout << "DEC $" << hex << (int)addr << endl;
+    cycles += 5;  // DEC ZP takes 5 cycles
+    if (debug) cout << "DEC $" << hex << (int)addr << endl;
     print_registers();
 }
 
@@ -839,7 +887,8 @@ void CPU65C02::DEC_ZP_X() {
     uint8_t addr = fetch_byte() + X;
     RAM[addr]--;
     update_flags(RAM[addr]);
-    cout << "DEC $" << hex << (int)addr << ",X" << endl;
+    cycles += 6;  // DEC ZP,X takes 6 cycles
+    if (debug) cout << "DEC $" << hex << (int)addr << ",X" << endl;
     print_registers();
 }
 
@@ -847,7 +896,8 @@ void CPU65C02::DEC_ABS() {
     uint16_t addr = fetch_word();
     RAM[addr]--;
     update_flags(RAM[addr]);
-    cout << "DEC $" << hex << setw(4) << setfill('0') << addr << endl;
+    cycles += 6;  // DEC ABS takes 6 cycles
+    if (debug) cout << "DEC $" << hex << setw(4) << setfill('0') << addr << endl;
     print_registers();
 }
 
@@ -855,21 +905,24 @@ void CPU65C02::DEC_ABS_X() {
     uint16_t addr = fetch_word() + X;
     RAM[addr]--;
     update_flags(RAM[addr]);
-    cout << "DEC $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
+    cycles += 7;  // DEC ABS,X takes 7 cycles
+    if (debug) cout << "DEC $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
     print_registers();
 }
 
 void CPU65C02::DEX() {
     X--;
     update_flags(X);
-    cout << "DEX" << endl;
+    cycles += 2;  // DEX takes 2 cycles
+    if (debug) cout << "DEX" << endl;
     print_registers();
 }
 
 void CPU65C02::DEY() {
     Y--;
     update_flags(Y);
-    cout << "DEY" << endl;
+    cycles += 2;  // DEY takes 2 cycles
+    if (debug) cout << "DEY" << endl;
     print_registers();
 }
 
@@ -878,7 +931,8 @@ void CPU65C02::AND_IMM() {
     uint8_t operand = fetch_byte();
     A &= operand;
     update_flags(A);
-    cout << "AND #$" << hex << (int)operand << endl;
+    cycles += 2;  // AND IMM takes 2 cycles
+    if (debug) cout << "AND #$" << hex << (int)operand << endl;
     print_registers();
 }
 
@@ -886,7 +940,8 @@ void CPU65C02::AND_ZP() {
     uint8_t addr = fetch_byte();
     A &= RAM[addr];
     update_flags(A);
-    cout << "AND $" << hex << (int)addr << endl;
+    cycles += 3;  // AND ZP takes 3 cycles
+    if (debug) cout << "AND $" << hex << (int)addr << endl;
     print_registers();
 }
 
@@ -894,7 +949,8 @@ void CPU65C02::AND_ZP_X() {
     uint8_t addr = fetch_byte() + X;
     A &= RAM[addr];
     update_flags(A);
-    cout << "AND $" << hex << (int)addr << ",X" << endl;
+    cycles += 4;  // AND ZP,X takes 4 cycles
+    if (debug) cout << "AND $" << hex << (int)addr << ",X" << endl;
     print_registers();
 }
 
@@ -902,7 +958,8 @@ void CPU65C02::AND_ABS() {
     uint16_t addr = fetch_word();
     A &= RAM[addr];
     update_flags(A);
-    cout << "AND $" << hex << setw(4) << setfill('0') << addr << endl;
+    cycles += 4;  // AND ABS takes 4 cycles
+    if (debug) cout << "AND $" << hex << setw(4) << setfill('0') << addr << endl;
     print_registers();
 }
 
@@ -910,7 +967,8 @@ void CPU65C02::AND_ABS_X() {
     uint16_t addr = fetch_word() + X;
     A &= RAM[addr];
     update_flags(A);
-    cout << "AND $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
+    cycles += 4;  // AND ABS,X takes 4 cycles (5 if page boundary crossed)
+    if (debug) cout << "AND $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
     print_registers();
 }
 
@@ -918,7 +976,8 @@ void CPU65C02::AND_ABS_Y() {
     uint16_t addr = fetch_word() + Y;
     A &= RAM[addr];
     update_flags(A);
-    cout << "AND $" << hex << setw(4) << setfill('0') << addr << ",Y" << endl;
+    cycles += 4;  // AND ABS,Y takes 4 cycles (5 if page boundary crossed)
+    if (debug) cout << "AND $" << hex << setw(4) << setfill('0') << addr << ",Y" << endl;
     print_registers();
 }
 
@@ -927,7 +986,8 @@ void CPU65C02::AND_PRE_IND_X() {
     uint16_t addr = fetch_byte(zp_addr) + (fetch_byte(zp_addr + 1) << 8);
     A &= RAM[addr];
     update_flags(A);
-    cout << "AND ($" << hex << (int)zp_addr << ",X)" << endl;
+    cycles += 6;  // AND (ZP,X) takes 6 cycles
+    if (debug) cout << "AND ($" << hex << (int)zp_addr << ",X)" << endl;
     print_registers();
 }
 
@@ -936,7 +996,8 @@ void CPU65C02::AND_POST_IND_Y() {
     uint16_t base = fetch_byte(zp_addr) + (fetch_byte(zp_addr + 1) << 8);
     A &= RAM[base + Y];
     update_flags(A);
-    cout << "AND ($" << hex << (int)zp_addr << "),Y" << endl;
+    cycles += 5;  // AND (ZP),Y takes 5 cycles (6 if page boundary crossed)
+    if (debug) cout << "AND ($" << hex << (int)zp_addr << "),Y" << endl;
     print_registers();
 }
 
@@ -945,7 +1006,8 @@ void CPU65C02::AND_IND() {
     uint16_t addr = fetch_byte(zp_addr) + (fetch_byte(zp_addr + 1) << 8);
     A &= RAM[addr];
     update_flags(A);
-    cout << "AND ($" << hex << (int)zp_addr << ")" << endl;
+    cycles += 5;  // AND (ZP) takes 5 cycles
+    if (debug) cout << "AND ($" << hex << (int)zp_addr << ")" << endl;
     print_registers();
 }
 
@@ -954,7 +1016,8 @@ void CPU65C02::ORA_IMM() {
     uint8_t operand = fetch_byte();
     A |= operand;
     update_flags(A);
-    cout << "ORA #$" << hex << (int)operand << endl;
+    cycles += 2;  // ORA IMM takes 2 cycles
+    if (debug)cout << "ORA #$" << hex << (int)operand << endl;
     print_registers();
 }
 
@@ -962,7 +1025,8 @@ void CPU65C02::ORA_ZP() {
     uint8_t addr = fetch_byte();
     A |= RAM[addr];
     update_flags(A);
-    cout << "ORA $" << hex << (int)addr << endl;
+    cycles += 3;  // ORA ZP takes 3 cycles
+    if (debug) cout << "ORA $" << hex << (int)addr << endl;
     print_registers();
 }
 
@@ -970,7 +1034,8 @@ void CPU65C02::ORA_ZP_X() {
     uint8_t addr = fetch_byte() + X;
     A |= RAM[addr];
     update_flags(A);
-    cout << "ORA $" << hex << (int)addr << ",X" << endl;
+    cycles += 4;  // ORA ZP,X takes 4 cycles
+    if (debug) cout << "ORA $" << hex << (int)addr << ",X" << endl;
     print_registers();
 }
 
@@ -978,7 +1043,8 @@ void CPU65C02::ORA_ABS() {
     uint16_t addr = fetch_word();
     A |= RAM[addr];
     update_flags(A);
-    cout << "ORA $" << hex << setw(4) << setfill('0') << addr << endl;
+    cycles += 4;  // ORA ABS takes 4 cycles
+    if (debug) cout << "ORA $" << hex << setw(4) << setfill('0') << addr << endl;
     print_registers();
 }
 
@@ -986,7 +1052,8 @@ void CPU65C02::ORA_ABS_X() {
     uint16_t addr = fetch_word() + X;
     A |= RAM[addr];
     update_flags(A);
-    cout << "ORA $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
+    cycles += 4;  // ORA ABS,X takes 4 cycles (5 if page boundary crossed)
+    if (debug) cout << "ORA $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
     print_registers();
 }
 
@@ -994,7 +1061,8 @@ void CPU65C02::ORA_ABS_Y() {
     uint16_t addr = fetch_word() + Y;
     A |= RAM[addr];
     update_flags(A);
-    cout << "ORA $" << hex << setw(4) << setfill('0') << addr << ",Y" << endl;
+    cycles += 4;  // ORA ABS,Y takes 4 cycles (5 if page boundary crossed)
+    if (debug) cout << "ORA $" << hex << setw(4) << setfill('0') << addr << ",Y" << endl;
     print_registers();
 }
 
@@ -1003,7 +1071,8 @@ void CPU65C02::ORA_PRE_IND_X() {
     uint16_t addr = fetch_byte(zp_addr) + (fetch_byte(zp_addr + 1) << 8);
     A |= RAM[addr];
     update_flags(A);
-    cout << "ORA ($" << hex << (int)zp_addr << ",X)" << endl;
+    cycles += 6;  // ORA (ZP,X) takes 6 cycles
+    if (debug) cout << "ORA ($" << hex << (int)zp_addr << ",X)" << endl;
     print_registers();
 }
 
@@ -1012,7 +1081,8 @@ void CPU65C02::ORA_POST_IND_Y() {
     uint16_t base = fetch_byte(zp_addr) + (fetch_byte(zp_addr + 1) << 8);
     A |= RAM[base + Y];
     update_flags(A);
-    cout << "ORA ($" << hex << (int)zp_addr << "),Y" << endl;
+    cycles += 5;  // ORA (ZP),Y takes 5 cycles (6 if page boundary crossed)
+    if (debug) cout << "ORA ($" << hex << (int)zp_addr << "),Y" << endl;
     print_registers();
 }
 
@@ -1021,7 +1091,8 @@ void CPU65C02::ORA_IND() {
     uint16_t addr = fetch_byte(zp_addr) + (fetch_byte(zp_addr + 1) << 8);
     A |= RAM[addr];
     update_flags(A);
-    cout << "ORA ($" << hex << (int)zp_addr << ")" << endl;
+    cycles += 5;  // ORA (ZP) takes 5 cycles
+    if (debug) cout << "ORA ($" << hex << (int)zp_addr << ")" << endl;
     print_registers();
 }
 
@@ -1030,7 +1101,8 @@ void CPU65C02::EOR_IMM() {
     uint8_t operand = fetch_byte();
     A ^= operand;
     update_flags(A);
-    cout << "EOR #$" << hex << (int)operand << endl;
+    cycles += 2;  // EOR IMM takes 2 cycles
+    if (debug) cout << "EOR #$" << hex << (int)operand << endl;
     print_registers();
 }
 
@@ -1038,7 +1110,8 @@ void CPU65C02::EOR_ZP() {
     uint8_t addr = fetch_byte();
     A ^= RAM[addr];
     update_flags(A);
-    cout << "EOR $" << hex << (int)addr << endl;
+    cycles += 3;  // EOR ZP takes 3 cycles
+    if (debug) cout << "EOR $" << hex << (int)addr << endl;
     print_registers();
 }
 
@@ -1046,7 +1119,8 @@ void CPU65C02::EOR_ZP_X() {
     uint8_t addr = fetch_byte() + X;
     A ^= RAM[addr];
     update_flags(A);
-    cout << "EOR $" << hex << (int)addr << ",X" << endl;
+    cycles += 4;  // EOR ZP,X takes 4 cycles
+    if (debug) cout << "EOR $" << hex << (int)addr << ",X" << endl;
     print_registers();
 }
 
@@ -1054,7 +1128,8 @@ void CPU65C02::EOR_ABS() {
     uint16_t addr = fetch_word();
     A ^= RAM[addr];
     update_flags(A);
-    cout << "EOR $" << hex << setw(4) << setfill('0') << addr << endl;
+    cycles += 4;  // EOR ABS takes 4 cycles
+    if (debug) cout << "EOR $" << hex << setw(4) << setfill('0') << addr << endl;
     print_registers();
 }
 
@@ -1062,7 +1137,8 @@ void CPU65C02::EOR_ABS_X() {
     uint16_t addr = fetch_word() + X;
     A ^= RAM[addr];
     update_flags(A);
-    cout << "EOR $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
+    cycles += 4;  // EOR ABS,X takes 4 cycles (5 if page boundary crossed)
+    if (debug) cout << "EOR $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
     print_registers();
 }
 
@@ -1070,7 +1146,8 @@ void CPU65C02::EOR_ABS_Y() {
     uint16_t addr = fetch_word() + Y;
     A ^= RAM[addr];
     update_flags(A);
-    cout << "EOR $" << hex << setw(4) << setfill('0') << addr << ",Y" << endl;
+    cycles += 4;  // EOR ABS,Y takes 4 cycles (5 if page boundary crossed)
+    if (debug) cout << "EOR $" << hex << setw(4) << setfill('0') << addr << ",Y" << endl;
     print_registers();
 }
 
@@ -1079,7 +1156,8 @@ void CPU65C02::EOR_PRE_IND_X() {
     uint16_t addr = fetch_byte(zp_addr) + (fetch_byte(zp_addr + 1) << 8);
     A ^= RAM[addr];
     update_flags(A);
-    cout << "EOR ($" << hex << (int)zp_addr << ",X)" << endl;
+    cycles += 6;  // EOR (ZP,X) takes 6 cycles
+    if (debug) cout << "EOR ($" << hex << (int)zp_addr << ",X)" << endl;
     print_registers();
 }
 
@@ -1088,7 +1166,8 @@ void CPU65C02::EOR_POST_IND_Y() {
     uint16_t base = fetch_byte(zp_addr) + (fetch_byte(zp_addr + 1) << 8);
     A ^= RAM[base + Y];
     update_flags(A);
-    cout << "EOR ($" << hex << (int)zp_addr << "),Y" << endl;
+    cycles += 5;  // EOR (ZP),Y takes 5 cycles (6 if page boundary crossed)
+    if (debug) cout << "EOR ($" << hex << (int)zp_addr << "),Y" << endl;
     print_registers();
 }
 
@@ -1097,7 +1176,8 @@ void CPU65C02::EOR_IND() {
     uint16_t addr = fetch_byte(zp_addr) + (fetch_byte(zp_addr + 1) << 8);
     A ^= RAM[addr];
     update_flags(A);
-    cout << "EOR ($" << hex << (int)zp_addr << ")" << endl;
+    cycles += 5;  // EOR (ZP) takes 5 cycles
+    if (debug) cout << "EOR ($" << hex << (int)zp_addr << ")" << endl;
     print_registers();
 }
 
@@ -1107,7 +1187,8 @@ void CPU65C02::ASL_ACC() {
     status = (status & ~0x01) | (A & 0x80) >> 7;
     A = (A << 1) | old_carry;
     update_flags(A);
-    cout << "ASL A" << endl;
+    cycles += 2;  // ASL A takes 2 cycles
+    if (debug) cout << "ASL A" << endl;
     print_registers();
 }
 
@@ -1117,7 +1198,7 @@ void CPU65C02::ASL_ZP() {
     status = (status & ~0x01) | (RAM[addr] & 0x80) >> 7;
     RAM[addr] = (RAM[addr] << 1) | old_carry;
     update_flags(RAM[addr]);
-    cout << "ASL $" << hex << (int)addr << endl;
+    if (debug) cout << "ASL $" << hex << (int)addr << endl;
     print_registers();
 }
 
@@ -1127,7 +1208,7 @@ void CPU65C02::ASL_ZP_X() {
     status = (status & ~0x01) | (RAM[addr] & 0x80) >> 7;
     RAM[addr] = (RAM[addr] << 1) | old_carry;
     update_flags(RAM[addr]);
-    cout << "ASL $" << hex << (int)addr << ",X" << endl;
+    if (debug) cout << "ASL $" << hex << (int)addr << ",X" << endl;
     print_registers();
 }
 
@@ -1137,7 +1218,7 @@ void CPU65C02::ASL_ABS() {
     status = (status & ~0x01) | (RAM[addr] & 0x80) >> 7;
     RAM[addr] = (RAM[addr] << 1) | old_carry;
     update_flags(RAM[addr]);
-    cout << "ASL $" << hex << setw(4) << setfill('0') << addr << endl;
+    if (debug) cout << "ASL $" << hex << setw(4) << setfill('0') << addr << endl;
     print_registers();
 }
 
@@ -1147,17 +1228,18 @@ void CPU65C02::ASL_ABS_X() {
     status = (status & ~0x01) | (RAM[addr] & 0x80) >> 7;
     RAM[addr] = (RAM[addr] << 1) | old_carry;
     update_flags(RAM[addr]);
-    cout << "ASL $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
+    if (debug) cout << "ASL $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
     print_registers();
 }
 
-// LSR implementations
+// LSR series
 void CPU65C02::LSR_ACC() {
     uint8_t old_carry = status & 0x01;
     status = (status & ~0x01) | (A & 0x01);
     A = (A >> 1) | (old_carry << 7);
     update_flags(A);
-    cout << "LSR A" << endl;
+    cycles += 2;  // LSR A takes 2 cycles
+    if (debug) cout << "LSR A" << endl;
     print_registers();
 }
 
@@ -1167,7 +1249,8 @@ void CPU65C02::LSR_ZP() {
     status = (status & ~0x01) | (RAM[addr] & 0x01);
     RAM[addr] = (RAM[addr] >> 1) | (old_carry << 7);
     update_flags(RAM[addr]);
-    cout << "LSR $" << hex << (int)addr << endl;
+    cycles += 5;  // LSR ZP takes 5 cycles
+    if (debug) cout << "LSR $" << hex << (int)addr << endl;
     print_registers();
 }
 
@@ -1177,7 +1260,8 @@ void CPU65C02::LSR_ZP_X() {
     status = (status & ~0x01) | (RAM[addr] & 0x01);
     RAM[addr] = (RAM[addr] >> 1) | (old_carry << 7);
     update_flags(RAM[addr]);
-    cout << "LSR $" << hex << (int)addr << ",X" << endl;
+    cycles += 6;  // LSR ZP,X takes 6 cycles
+    if (debug) cout << "LSR $" << hex << (int)addr << ",X" << endl;
     print_registers();
 }
 
@@ -1187,7 +1271,8 @@ void CPU65C02::LSR_ABS() {
     status = (status & ~0x01) | (RAM[addr] & 0x01);
     RAM[addr] = (RAM[addr] >> 1) | (old_carry << 7);
     update_flags(RAM[addr]);
-    cout << "LSR $" << hex << setw(4) << setfill('0') << addr << endl;
+    cycles += 6;  // LSR ABS takes 6 cycles
+    if (debug) cout << "LSR $" << hex << setw(4) << setfill('0') << addr << endl;
     print_registers();
 }
 
@@ -1197,17 +1282,19 @@ void CPU65C02::LSR_ABS_X() {
     status = (status & ~0x01) | (RAM[addr] & 0x01);
     RAM[addr] = (RAM[addr] >> 1) | (old_carry << 7);
     update_flags(RAM[addr]);
-    cout << "LSR $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
+    cycles += 7;  // LSR ABS,X takes 7 cycles
+    if (debug) cout << "LSR $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
     print_registers();
 }
 
-// ROL implementations
+// ROL series
 void CPU65C02::ROL_ACC() {
     uint8_t old_carry = status & 0x01;
     status = (status & ~0x01) | (A & 0x80) >> 7;
     A = (A << 1) | old_carry;
     update_flags(A);
-    cout << "ROL A" << endl;
+    cycles += 2;  // ROL A takes 2 cycles
+    if (debug) cout << "ROL A" << endl;
     print_registers();
 }
 
@@ -1217,7 +1304,8 @@ void CPU65C02::ROL_ZP() {
     status = (status & ~0x01) | (RAM[addr] & 0x80) >> 7;
     RAM[addr] = (RAM[addr] << 1) | old_carry;
     update_flags(RAM[addr]);
-    cout << "ROL $" << hex << (int)addr << endl;
+    cycles += 5;  // ROL ZP takes 5 cycles
+    if (debug) cout << "ROL $" << hex << (int)addr << endl;
     print_registers();
 }
 
@@ -1227,7 +1315,8 @@ void CPU65C02::ROL_ZP_X() {
     status = (status & ~0x01) | (RAM[addr] & 0x80) >> 7;
     RAM[addr] = (RAM[addr] << 1) | old_carry;
     update_flags(RAM[addr]);
-    cout << "ROL $" << hex << (int)addr << ",X" << endl;
+    cycles += 6;  // ROL ZP,X takes 6 cycles
+    if (debug) cout << "ROL $" << hex << (int)addr << ",X" << endl;
     print_registers();
 }
 
@@ -1237,7 +1326,8 @@ void CPU65C02::ROL_ABS() {
     status = (status & ~0x01) | (RAM[addr] & 0x80) >> 7;
     RAM[addr] = (RAM[addr] << 1) | old_carry;
     update_flags(RAM[addr]);
-    cout << "ROL $" << hex << setw(4) << setfill('0') << addr << endl;
+    cycles += 6;  // ROL ABS takes 6 cycles
+    if (debug) cout << "ROL $" << hex << setw(4) << setfill('0') << addr << endl;
     print_registers();
 }
 
@@ -1247,17 +1337,19 @@ void CPU65C02::ROL_ABS_X() {
     status = (status & ~0x01) | (RAM[addr] & 0x80) >> 7;
     RAM[addr] = (RAM[addr] << 1) | old_carry;
     update_flags(RAM[addr]);
-    cout << "ROL $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
+    cycles += 7;  // ROL ABS,X takes 7 cycles
+    if (debug) cout << "ROL $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
     print_registers();
 }
 
-// ROR implementations
+// ROR series
 void CPU65C02::ROR_ACC() {
     uint8_t old_carry = status & 0x01;
     status = (status & ~0x01) | (A & 0x01);
     A = (A >> 1) | (old_carry << 7);
     update_flags(A);
-    cout << "ROR A" << endl;
+    cycles += 2;  // ROR A takes 2 cycles
+    if (debug) cout << "ROR A" << endl;
     print_registers();
 }
 
@@ -1267,7 +1359,8 @@ void CPU65C02::ROR_ZP() {
     status = (status & ~0x01) | (RAM[addr] & 0x01);
     RAM[addr] = (RAM[addr] >> 1) | (old_carry << 7);
     update_flags(RAM[addr]);
-    cout << "ROR $" << hex << (int)addr << endl;
+    cycles += 5;  // ROR ZP takes 5 cycles
+    if (debug) cout << "ROR $" << hex << (int)addr << endl;
     print_registers();
 }
 
@@ -1277,7 +1370,8 @@ void CPU65C02::ROR_ZP_X() {
     status = (status & ~0x01) | (RAM[addr] & 0x01);
     RAM[addr] = (RAM[addr] >> 1) | (old_carry << 7);
     update_flags(RAM[addr]);
-    cout << "ROR $" << hex << (int)addr << ",X" << endl;
+    cycles += 6;  // ROR ZP,X takes 6 cycles
+    if (debug) cout << "ROR $" << hex << (int)addr << ",X" << endl;
     print_registers();
 }
 
@@ -1287,7 +1381,8 @@ void CPU65C02::ROR_ABS() {
     status = (status & ~0x01) | (RAM[addr] & 0x01);
     RAM[addr] = (RAM[addr] >> 1) | (old_carry << 7);
     update_flags(RAM[addr]);
-    cout << "ROR $" << hex << setw(4) << setfill('0') << addr << endl;
+    cycles += 6;  // ROR ABS takes 6 cycles
+    if (debug) cout << "ROR $" << hex << setw(4) << setfill('0') << addr << endl;
     print_registers();
 }
 
@@ -1297,7 +1392,8 @@ void CPU65C02::ROR_ABS_X() {
     status = (status & ~0x01) | (RAM[addr] & 0x01);
     RAM[addr] = (RAM[addr] >> 1) | (old_carry << 7);
     update_flags(RAM[addr]);
-    cout << "ROR $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
+    cycles += 7;  // ROR ABS,X takes 7 cycles
+    if (debug) cout << "ROR $" << hex << setw(4) << setfill('0') << addr << ",X" << endl;
     print_registers();
 }
 

@@ -5,6 +5,9 @@ project(6502CPU VERSION 1.0)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Add debug option
+option(CPU_DEBUG "Enable CPU debug output" OFF)
+
 # Add source files
 set(SOURCES
     main.cpp
@@ -21,6 +24,11 @@ add_executable(6502cpu ${SOURCES} ${HEADERS})
 
 # Add include directories
 target_include_directories(6502cpu PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Add debug definition if enabled
+if(CPU_DEBUG)
+    target_compile_definitions(6502cpu PRIVATE CPU_DEBUG=1)
+endif()
 
 # Set compiler flags
 if(MSVC)

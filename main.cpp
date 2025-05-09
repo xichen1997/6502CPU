@@ -8,7 +8,12 @@ int main() {
     cout << "Hello, World!" << endl;
     // cout << hex << uppercase;
     // cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    CPU65C02 cpu;
+    
+    #ifdef CPU_DEBUG
+    CPU65C02 cpu(true);
+    #else
+    CPU65C02 cpu(false);
+    #endif
     
     // Test program
     uint8_t program[] = {

@@ -45,7 +45,7 @@ void CPU65C02::update_flags(uint8_t value) {
     }
 }
 
-CPU65C02::CPU65C02() {
+CPU65C02::CPU65C02(bool debug_mode) : debug(debug_mode) {
     reset();
     // Simple instruction set with real opcodes
     // LDA series

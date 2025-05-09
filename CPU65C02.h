@@ -39,7 +39,7 @@ private:
     uint32_t get_cycles() { return cycles; }
 
 public:
-    CPU65C02();
+    CPU65C02(bool debug_mode = false);
     void reset();
     void load_program(uint8_t* program, size_t size);
     void execute();
